@@ -21,7 +21,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'da
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True  # 每次请求结束后都会自动提交数据库中的变动
 app.config['MAIL_SERVER'] = 'smtp.163.com'
 # app.config['MAIL_PORT'] = 587
-app.config['MAIL-USE-TLS'] = True
+app.config['MAIL_USE_TLS'] = True
 # 注意使用环境变量
 app.config['FLASKY_MAIL_SENDER'] = 'Flasky Admin <flasky@example.com>'
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
@@ -51,7 +51,6 @@ class Role(db.Model):  # 模型表示程序使用的持久化实体
 
     def __repr__(self):
         return '<Role %r>' % self.name
-
 
 class User(db.Model):
     __tablename__ = 'users'

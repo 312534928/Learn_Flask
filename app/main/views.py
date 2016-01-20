@@ -21,8 +21,8 @@ def contact():  # view function
     return render_template('contact.html')
 
 
-@main.route('/', methods=['GET', 'POST'])
-def index():  # view function
+@main.route('/hello/', methods=['GET', 'POST'])
+def hello():  # view function
     form = NameForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.name.data).first()
@@ -35,5 +35,9 @@ def index():  # view function
         else:
             session['known'] = True
         session['name'] = form.name.data
-        return redirect(url_for('.index'))  # 重定向为get模式
-    return render_template('index.html', form=form, name=session.get('name'), known=session.get('known', False))
+        return redirect(url_for('.hello'))  # 重定向为get模式
+    return render_template('hello.html', form=form, name=session.get('name'), known=session.get('known', False))
+
+@main.route('/')
+def index():
+    return render_template('index.html')

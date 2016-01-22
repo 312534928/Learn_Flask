@@ -35,6 +35,7 @@ def hello():  # view function
         else:
             session['known'] = True
         session['name'] = form.name.data
+        form.name.data=''
         return redirect(url_for('.hello'))  # 重定向为get模式
     return render_template('hello.html', form=form, name=session.get('name'), known=session.get('known', False))
 

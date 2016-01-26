@@ -1,14 +1,24 @@
 from flask import render_template, session, redirect, url_for,current_app
-
+from flask.ext.login import login_required
+from ..decorators import permission_required,admin_required
 from . import main
 from .forms import NameForm
 from .. import db
-from ..models import User
+from ..models import User,Permission
 from ..email import send_email
 
-@main.route('/user/<name>')
-def user(name):  # view function
-    return render_template('user.html', username=name)
+
+@main.route('/admin')
+@login_required
+@admin_required
+def for_admins_only():  # view function
+    return "For Administrators"
+
+@main.route('/moderator')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def for_moderators_only():  # view function
+    return "For comment Moderators"
 
 
 @main.route('/home/')

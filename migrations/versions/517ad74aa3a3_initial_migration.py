@@ -1,13 +1,13 @@
 """initial migration
 
-Revision ID: 76c8b4db2c3d
+Revision ID: 517ad74aa3a3
 Revises: None
-Create Date: 2016-01-22 21:22:09.712658
+Create Date: 2016-01-26 21:23:59.487385
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '76c8b4db2c3d'
+revision = '517ad74aa3a3'
 down_revision = None
 
 from alembic import op
@@ -19,9 +19,12 @@ def upgrade():
     op.create_table('roles',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=64), nullable=True),
+    sa.Column('default', sa.Boolean(), nullable=True),
+    sa.Column('permission', sa.Integer(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
     )
+    op.create_index(op.f('ix_roles_default'), 'roles', ['default'], unique=False)
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('email', sa.String(length=64), nullable=True),
@@ -42,5 +45,6 @@ def downgrade():
     op.drop_index(op.f('ix_users_username'), table_name='users')
     op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')
+    op.drop_index(op.f('ix_roles_default'), table_name='roles')
     op.drop_table('roles')
     ### end Alembic commands ###

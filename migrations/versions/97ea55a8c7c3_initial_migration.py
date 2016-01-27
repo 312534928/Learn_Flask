@@ -1,13 +1,13 @@
 """initial migration
 
-Revision ID: 517ad74aa3a3
+Revision ID: 97ea55a8c7c3
 Revises: None
-Create Date: 2016-01-26 21:23:59.487385
+Create Date: 2016-01-27 19:04:17.065910
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '517ad74aa3a3'
+revision = '97ea55a8c7c3'
 down_revision = None
 
 from alembic import op
@@ -20,7 +20,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=64), nullable=True),
     sa.Column('default', sa.Boolean(), nullable=True),
-    sa.Column('permission', sa.Integer(), nullable=True),
+    sa.Column('permissions', sa.Integer(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
     )
@@ -32,6 +32,12 @@ def upgrade():
     sa.Column('role_id', sa.Integer(), nullable=True),
     sa.Column('password_hash', sa.String(length=128), nullable=True),
     sa.Column('confirmed', sa.BOOLEAN(), nullable=True),
+    sa.Column('name', sa.String(length=64), nullable=True),
+    sa.Column('location', sa.String(length=64), nullable=True),
+    sa.Column('about_me', sa.Text(), nullable=True),
+    sa.Column('Ico', sa.Integer(), nullable=True),
+    sa.Column('member_since', sa.DateTime(), nullable=True),
+    sa.Column('last_seen', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['role_id'], ['roles.id'], ),
     sa.PrimaryKeyConstraint('id')
     )

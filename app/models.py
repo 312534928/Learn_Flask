@@ -1,8 +1,11 @@
-from . import db, login_manager
+from flask import current_app
+import hashlib
+from datetime import datetime
+from flask import request
 from flask.ext.login import UserMixin, AnonymousUserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from flask import current_app
+from . import db, login_manager
 
 
 class Permission:
@@ -37,7 +40,7 @@ class Role(db.Model):  # 模型表示程序使用的持久化实体
             role = Role.query.filter_by(name=r).first()
             if role is None:
                 role = Role(name=r)
-            role.permission = roles[r][0]
+            role.permissions = roles[r][0]
             role.default = roles[r][1]
             db.session.add(role)
         db.session.commit()
@@ -56,6 +59,15 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))
     confirmed = db.Column(db.BOOLEAN, default=False)
 
+    # 用户资料
+    name = db.Column(db.String(64))
+    location = db.Column(db.String(64))
+    about_me = db.Column(db.Text())
+    # avatar_hash = db.Column(db.String(32))
+    Ico = db.Column(db.Integer,default='2')
+    member_since = db.Column(db.DateTime(), default=datetime.utcnow)  # 注册时间，db.Column()参数可以接受函数为参数
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)  # 最后登录时间
+
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
         if self.role is None:
@@ -63,6 +75,8 @@ class User(UserMixin, db.Model):
                 self.role = Role.query.filter_by(permissions=0xff).first()
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
+                # if self.email is not None and self.avatar_hash is None:
+                #     self.avatar_hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
 
     @property
     def password(self):
@@ -125,6 +139,7 @@ class User(UserMixin, db.Model):
         if self.query.filter_by(email=new_email).first() is not None:
             return False
         self.email = new_email
+        # self.avatar_hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
         db.session.add(self)
         return True
 
@@ -137,6 +152,30 @@ class User(UserMixin, db.Model):
     def is_administrator(self):
         return self.can(Permission.ADMINISTER)
 
+    # 刷新用户最后登录时间
+    def ping(self):
+        self.last_seen = datetime.utcnow()
+        db.session.add(self)
+
+    # 头像
+    # def gravatar(self, size=100, default='identicon', rating='g'):
+    #     if request.is_secure:
+    #         url = 'https://secure.gravatar.com/avatar'
+    #     else:
+    #         url = 'https://ww.gravatar.com/avatar'
+    #     hash = self.avatar_hash or hashlib.md5(self.email.encode('utf-8')).hexdigest()
+    #     return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(url=url, hash=hash, size=size, default=default,
+    #                                                                  rating=rating)
+
+    # 头像
+    def IDIco(self, size):
+        if self.Ico is not None:
+            if size == "big":
+                url = '../static/avatar/' + str(self.Ico)+'.jpg'
+            else:
+                url = '../static/avatar/' + str(self.Ico) + '_li.jpg'
+            return url
+
     def __repr__(self):
         return '<User %r>' % self.username
 
@@ -148,8 +187,10 @@ class AnonymousUser(AnonymousUserMixin):
     def is_administrator(self):
         return False
 
-#用户未登录时current_user的值设为AnonymousUser
+
+# 用户未登录时current_user的值设为AnonymousUser
 login_manager.anonymous_user = AnonymousUser
+
 
 @login_manager.user_loader
 def load_user(user_id):

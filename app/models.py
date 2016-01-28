@@ -64,9 +64,10 @@ class User(UserMixin, db.Model):
     location = db.Column(db.String(64))
     about_me = db.Column(db.Text())
     # avatar_hash = db.Column(db.String(32))
-    Ico = db.Column(db.Integer,default='2')
+    Ico = db.Column(db.Integer, default='2')
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)  # 注册时间，db.Column()参数可以接受函数为参数
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)  # 最后登录时间
+    posts = db.relationship('Post', backref='author', lazy='dynamic')
 
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
@@ -168,13 +169,37 @@ class User(UserMixin, db.Model):
     #                                                                  rating=rating)
 
     # 头像
-    def IDIco(self, size):
+    def IDIco(self, size='big'):
         if self.Ico is not None:
-            if size == "big":
-                url = '../static/avatar/' + str(self.Ico)+'.jpg'
-            else:
+            if size == "mid":
+                url = '../static/avatar/' + str(self.Ico) + '_mid.jpg'
+            elif size == "li":
                 url = '../static/avatar/' + str(self.Ico) + '_li.jpg'
+            else:
+                url = '../static/avatar/' + str(self.Ico) + '.jpg'
             return url
+
+    @staticmethod
+    def generate_fake(count=100):
+        from sqlalchemy.exc import IntegrityError
+        from random import seed
+        import forgery_py
+
+        seed()
+        for i in range(count):
+            u = User(email=forgery_py.internet.email_address(),
+                     username=forgery_py.internet.user_name(True),
+                     password=forgery_py.lorem_ipsum.word(),
+                     confirmed=True,
+                     name=forgery_py.name.full_name(),
+                     location=forgery_py.address.city(),
+                     about_me=forgery_py.lorem_ipsum.sentence(),
+                     member_since=forgery_py.date.date(True))
+            db.session.add(u)
+            try:
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
 
     def __repr__(self):
         return '<User %r>' % self.username
@@ -195,3 +220,26 @@ login_manager.anonymous_user = AnonymousUser
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+
+class Post(db.Model):
+    __tablename__ = 'posts'
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+    @staticmethod
+    def generate_fake(count=100):
+        from random import seed,randint
+        import forgery_py
+
+        seed()
+        user_count=User.query.count()
+        for i in range(count):
+            u=User.query.offset(randint(0,user_count-1)).first()
+            p=Post(body=forgery_py.lorem_ipsum.sentences(randint(1,3)),
+                   timestamp=forgery_py.date.date(True),
+                   author=u)
+            db.session.add(p)
+            db.session.commit()

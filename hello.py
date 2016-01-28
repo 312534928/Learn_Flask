@@ -98,7 +98,7 @@ def user(name):  # view function
 
 @app.route('/home/')
 def home():  # view function
-    return render_template('home.html')
+    return render_template('blog.html')
 
 
 @app.route('/contact/')

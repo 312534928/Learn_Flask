@@ -1,10 +1,10 @@
-from flask import render_template, session, redirect, url_for, current_app, abort, flash
+from flask import render_template, session, redirect, url_for, current_app, abort, flash, request
 from flask.ext.login import login_required, current_user
 from ..decorators import permission_required, admin_required
 from . import main
-from .forms import NameForm, EditProfileForm,EditProfileAdminForm
+from .forms import NameForm, EditProfileForm, EditProfileAdminForm, PostForm
 from .. import db
-from ..models import Role, User, Permission
+from ..models import Role, User, Permission, Post
 from ..email import send_email
 
 
@@ -32,9 +32,18 @@ def hello():  # view function
     return render_template('hello.html', form=form, name=session.get('name'), known=session.get('known', False))
 
 
-@main.route('/home/')
-def home():  # view function
-    return render_template('home.html')
+@main.route('/blog/', methods=['GET', 'POST'])
+def blog():  # view function
+    form = PostForm()
+    if current_user.can(Permission.WRITE_ARTICLES) and form.validate_on_submit():
+        post = Post(body=form.body.data, author=current_user._get_current_object())
+        db.session.add(post)
+        return redirect(url_for('.blog'))
+    page = request.args.get('page', 1, type=int)
+    pagination = Post.query.order_by(Post.timestamp.desc()).\
+        paginate(page, per_page=current_app.config['FLASKY_POSTS_PER_PAGE'], error_out=False)  # 默认每页显示20
+    posts = pagination.items
+    return render_template('blog.html', form=form, posts=posts, pagination=pagination)
 
 
 @main.route('/contact/')
@@ -48,7 +57,8 @@ def user(username):
     user = User.query.filter_by(username=username).first()
     if user is None:
         abort(404)
-    return render_template('user.html', user=user)
+    posts = user.posts.order_by(Post.timestamp.desc()).all()
+    return render_template('user.html', user=user, posts=posts)
 
 
 @main.route('/edit-profile', methods=['GET', 'POST'])
@@ -66,6 +76,7 @@ def edit_profile():
     form.location.data = current_user.location
     form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', form=form)
+
 
 @main.route('/edit-profile/<int:id>', methods=['GET', 'POST'])
 @login_required

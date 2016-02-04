@@ -40,11 +40,33 @@ def blog():  # view function
         db.session.add(post)
         return redirect(url_for('.blog'))
     page = request.args.get('page', 1, type=int)
-    pagination = Post.query.order_by(Post.timestamp.desc()).\
+    pagination = Post.query.order_by(Post.timestamp.desc()). \
         paginate(page, per_page=current_app.config['FLASKY_POSTS_PER_PAGE'], error_out=False)  # 默认每页显示20
     posts = pagination.items
     return render_template('blog.html', form=form, posts=posts, pagination=pagination)
 
+## 文章连接
+@main.route('/post/<int:id>')
+def post(id):
+    post = Post.query.get_or_404(id)
+    return render_template('post.html', posts=[post])
+
+
+##文章编辑器
+@main.route('/edit/<int:id>',methods=['GET', 'POST'])
+@login_required
+def edit(id):
+    post=Post.query.get_or_404(id)
+    if current_user!=post.author and not current_user.can(Permission.ADMINISTER):
+        abort(403)
+    form=PostForm()
+    if form.validate_on_submit():
+        post.body=form.body.data
+        db.session.add(post)
+        flash('The post has been updated.')
+        return redirect(url_for('post',id=post.id))
+    form.body.data=post.body
+    return render_template('edit_post.html',form=form)
 
 @main.route('/contact/')
 def contact():  # view function

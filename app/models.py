@@ -51,6 +51,13 @@ class Role(db.Model):  # 模型表示程序使用的持久化实体
         return '<Role %r>' % self.name
 
 
+class Follow(db.Model):
+    __tablename__ = 'follows'
+    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -60,6 +67,18 @@ class User(UserMixin, db.Model):
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     password_hash = db.Column(db.String(128))
     confirmed = db.Column(db.BOOLEAN, default=False)
+
+    # 关注
+    followed = db.relationship('Follow',
+                               foreign_keys=[Follow.follower_id],
+                               backref=db.backref('follower', lazy='joined'),
+                               lazy='dynamic',
+                               cascade='all,delete-orphan')
+    followers = db.relationship('Follow',
+                                foreign_keys=[Follow.followed_id],
+                                backref=db.backref('followed', lazy='joined'),
+                                lazy='dynamic',
+                                cascade='all, delete-orphan')
 
     # 用户资料
     name = db.Column(db.String(64))
@@ -80,10 +99,15 @@ class User(UserMixin, db.Model):
                 self.role = Role.query.filter_by(default=True).first()
                 # if self.email is not None and self.avatar_hash is None:
                 #     self.avatar_hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
+        self.followed.append(Follow(followed=self))
 
     @property
     def password(self):
         raise AttributeError('Password is not a readable attribute')
+
+    @property
+    def followed_posts(self):
+        return Post.query.join(Follow, Follow.followed_id == Post.author_id).filter(Follow.follower_id == self.id)
 
     @password.setter
     def password(self, password):
@@ -203,6 +227,30 @@ class User(UserMixin, db.Model):
             except IntegrityError:
                 db.session.rollback()
 
+    @staticmethod
+    def add_self_follows():
+        for user in User.query.all():
+            if not user.is_following(user):
+                user.follow(user)
+                db.session.add(user)
+                db.session.commit()
+
+    def follow(self, user):
+        if not self.is_following(user):
+            f = Follow(follower=self, followed=user)
+            db.session.add(f)
+
+    def unfollow(self, user):
+        f = self.followed.filter_by(followed_id=user.id).first()
+        if f:
+            db.session.delete(f)
+
+    def is_following(self, user):
+        return self.followed.filter_by(followed_id=user.id).first() is not None
+
+    def is_followed_by(self, user):
+        return self.followers.filter_by(follower_id=user.id).first() is not None
+
     def __repr__(self):
         return '<User %r>' % self.username
 
@@ -241,7 +289,7 @@ class Post(db.Model):
                         'em', 'i', 'li', 'ol', 'pre', 'strong', 'ul',
                         'h1', 'h2', 'h3', 'p']
         target.body_html = bleach.linkify(
-            bleach.clean(markdown(value, out_format='html'), tags=allowed_tags, strip=True))
+                bleach.clean(markdown(value, out_format='html'), tags=allowed_tags, strip=True))
 
     @staticmethod
     def generate_fake(count=100):
@@ -259,4 +307,4 @@ class Post(db.Model):
             db.session.commit()
 
 
-db.event.listen(Post.body, 'set', Post.on_changed_body)#设置监听，body发生变化即调用on_changed_body
+db.event.listen(Post.body, 'set', Post.on_changed_body)  # 设置监听，body发生变化即调用on_changed_body

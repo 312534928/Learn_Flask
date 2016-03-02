@@ -7,6 +7,14 @@
     <table name="alembic_version" schema="" catalog="" type="TABLE">
       <column name="version_num" sqlType="VARCHAR(32)" precision="0" scale="-1" nullable="false" jdbcType="12"/>
     </table>
+    <table name="follows" schema="" catalog="" type="TABLE">
+      <column name="follower_id" sqlType="INTEGER" precision="0" scale="-1" nullable="false" jdbcType="4"/>
+      <column name="followed_id" sqlType="INTEGER" precision="0" scale="-1" nullable="false" jdbcType="4"/>
+      <column name="timestamp" sqlType="DATETIME" precision="0" scale="-1" nullable="true" jdbcType="12"/>
+      <primary-key columns="follower_id,followed_id"/>
+      <foreign-key name="#FAKE_follows_1" columns="follower_id" ref-table="users" ref-schema="" ref-catalog="" ref-columns="id" update-rule="3" delete-rule="3" deferrability="1"/>
+      <foreign-key name="#FAKE_follows_2" columns="followed_id" ref-table="users" ref-schema="" ref-catalog="" ref-columns="id" update-rule="3" delete-rule="3" deferrability="1"/>
+    </table>
     <table name="posts" schema="" catalog="" type="TABLE">
       <column name="id" sqlType="INTEGER" precision="0" scale="-1" nullable="false" jdbcType="4"/>
       <column name="body" sqlType="TEXT" precision="0" scale="-1" nullable="true" jdbcType="12"/>

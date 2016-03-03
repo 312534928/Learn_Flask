@@ -45,6 +45,12 @@ class EditProfileAdminForm(Form):
         if field.data != self.user.username and User.query.filter_by(username=field.data).first():
             raise ValidationError('Username already in use.')
 
+
 class PostForm(Form):
-    body=PageDownField("What's on your mind?",validators=[Required()])
-    submit=SubmitField('Submit')
+    body = PageDownField("What's on your mind?", validators=[Required()])
+    submit = SubmitField('Submit')
+
+
+class CommentForm(Form):
+    body = StringField('', validators=[Required()])
+    submit = SubmitField('Submit')
